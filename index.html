@@ -64,19 +64,23 @@ a{color:var(--blue);}
  <button class="btn" onclick="var w=document.getElementById('formwrap');w.style.display=w.style.display==='block'?'none':'block'">+ Предложить гипотезу</button>
  <div id="formwrap"><iframe id="hypframe"></iframe></div>
  <div id="hyps" style="margin-top:10px"></div>
+ <h2>✅ Сделано — с результатами</h2>
+ <div id="done"></div>
  <h2>📣 Посты и публикации</h2>
  <div id="posts"></div>
  <h2>💬 Отзывы</h2>
  <div id="reviews"></div>
 </div>
 <div>
+ <h2>📋 Журнал решений</h2>
+ <div id="decisions"></div>
  <h2>💰 Деньги: тотал и сплит по месяцам</h2>
  <div id="money"></div>
  <h2>🗺 Роадмап (кратко — полный на «Гантт»)</h2>
  <div id="road"></div>
 </div>
 </div>
-<footer>Правка данных — в таблице (разделы: метрика/деньги/пост/отзыв/роадмап). Гипотезы — через форму, появляются здесь после обновления страницы.</footer>
+<footer>Правка данных — в таблице (разделы: метрика/деньги/пост/отзыв/роадмап/решение/сделано). Гипотезы — через форму, появляются здесь после обновления страницы.</footer>
 </div>
 <script>
 var ENC={"salt":"UWu+db/JZMBUztuVxXPtOg==","iv":"V6qP8j5K8LYOgzYZ","ct":"TrEo5vcLupcP9Z9b/U7VACBkxolH71R+rlY7qEsGRrdL9H+22RrGIHSl940/+EN49qPdAX4RamnpKw1d06OpbA/c5F+qt4ZaY/j3YHhFdmntuBUxsS9pceqYaomIdogQdwEu3/ONP47N0fCA9myqkp9XEqTKeGJzs5s9MT2b7iqBMajbJix2p4/Jfdk0pQFbWhDlQ1tRcz1VXu+OkCjrf1wLzz1/GBqdRD4re2Q4kA=="};
@@ -119,6 +123,8 @@ function start(cfg){
    if(i===5&&v)v='<a href="'+v+'" target="_blank">открыть</a>';
    if(i===4&&v)v='<span class="tag">'+v+'</span>';
    return '<td>'+v+'</td>';}).join('')+'</tr>';}).join('')+'</table>';};
+  document.getElementById('decisions').innerHTML=tbl(by('решение'),['Дата','Решение','Комментарий'],[1,2,6]);
+  document.getElementById('done').innerHTML=tbl(by('сделано'),['Когда','Что сделано','Результат'],[1,2,6]);
   document.getElementById('posts').innerHTML=tbl(by('пост'),['Дата','Что','Канал','Ссылка','Статус'],[1,2,4,5,6]);
   document.getElementById('reviews').innerHTML=tbl(by('отзыв').filter(function(r){return r[2]||r[6];}),['Дата','Отзыв','Где','Ссылка'],[1,6,4,5]);
   var mon=by('деньги'),g={},total=0;
