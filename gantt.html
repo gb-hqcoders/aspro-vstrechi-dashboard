@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Аспро.Встречи — Гантт</title>
+<meta name="robots" content="noindex">
+<style>
+:root{--navy:#071437;--blue:#1B84FF;--green:#62C584;--coral:#F95D51;--gray:#F6F6F9;--txt:#494949;}
+*{box-sizing:border-box;}
+body{font-family:'Inter Tight','Segoe UI',Arial,sans-serif;background:var(--gray);color:var(--navy);margin:0;padding:24px;}
+header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px;}
+h1{margin:0;font-size:24px;}
+.nav a{display:inline-block;padding:7px 16px;border-radius:9px;text-decoration:none;color:var(--navy);background:#fff;margin-left:8px;font-size:14px;font-weight:600;}
+.nav a.act{background:var(--blue);color:#fff;}
+.chart{background:#fff;border-radius:14px;padding:20px;overflow-x:auto;}
+.grid{position:relative;min-width:1000px;}
+.months{display:flex;margin-left:320px;border-bottom:2px solid var(--navy);font-weight:700;font-size:13px;}
+.months div{border-left:1px solid #e5e7eb;padding:6px 4px;}
+.row{display:flex;align-items:center;height:36px;font-size:13px;position:relative;}
+.row:nth-child(odd){background:#fafbfe;}
+.label{width:320px;min-width:320px;padding-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lane{position:relative;flex:1;height:100%;}
+.bar{position:absolute;top:8px;height:20px;border-radius:6px;background:var(--blue);opacity:.9;}
+.bar.crit{background:var(--coral);}
+.bar.v2{background:#7c5cff;}
+#gate{max-width:360px;margin:12vh auto;background:#fff;border-radius:16px;padding:28px;}
+#gate input{width:100%;padding:11px 14px;margin-bottom:10px;border:1px solid #dfe3ea;border-radius:9px;font-size:15px;}
+.btn{background:var(--blue);color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer;width:100%;}
+.e{color:var(--coral);font-size:13px;min-height:18px;}
+.legend{margin-top:14px;font-size:12px;color:var(--txt);}
+</style>
+</head>
+<body>
+<div id="gate">
+ <h1 style="margin-bottom:6px">Аспро.Встречи</h1>
+ <div style="font-size:13px;color:var(--txt);margin-bottom:16px">Гантт — вход для команды</div>
+ <input id="lg" placeholder="Логин"><input id="pw" type="password" placeholder="Пароль">
+ <div class="e" id="err"></div><button class="btn" onclick="login()">Войти</button>
+</div>
+<div id="app" style="display:none">
+<header>
+ <h1>Аспро.Встречи — Гантт запуска</h1>
+ <div class="nav"><a href="index.html">Дашборд</a><a class="act" href="gantt.html">Гантт</a></div>
+</header>
+<div class="chart"><div class="grid" id="grid"></div>
+<div class="legend">красное — критический путь (пометка в комментарии) · фиолетовое — v2 · данные из раздела «роадмап» таблицы (колонки: дата, конец)</div>
+</div>
+</div>
+<script>
+var ENC={"salt":"UWu+db/JZMBUztuVxXPtOg==","iv":"V6qP8j5K8LYOgzYZ","ct":"TrEo5vcLupcP9Z9b/U7VACBkxolH71R+rlY7qEsGRrdL9H+22RrGIHSl940/+EN49qPdAX4RamnpKw1d06OpbA/c5F+qt4ZaY/j3YHhFdmntuBUxsS9pceqYaomIdogQdwEu3/ONP47N0fCA9myqkp9XEqTKeGJzs5s9MT2b7iqBMajbJix2p4/Jfdk0pQFbWhDlQ1tRcz1VXu+OkCjrf1wLzz1/GBqdRD4re2Q4kA=="};
+function b64(s){return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0)});}
+async function unlock(l,p){
+ var km=await crypto.subtle.importKey('raw',new TextEncoder().encode(l+':'+p),'PBKDF2',false,['deriveKey']);
+ var key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(ENC.salt),iterations:150000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+ return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(ENC.iv)},key,b64(ENC.ct))));
+}
+async function login(){
+ try{var c=await unlock(document.getElementById('lg').value.trim().toLowerCase(),document.getElementById('pw').value);
+  localStorage.setItem('avcfg',JSON.stringify(c));start(c);
+ }catch(e){document.getElementById('err').textContent='Неверный логин или пароль';}
+}
+function start(cfg){
+ document.getElementById('gate').style.display='none';
+ document.getElementById('app').style.display='block';
+ fetch('https://docs.google.com/spreadsheets/d/'+cfg.s+'/gviz/tq?tqx=out:json&headers=1')
+ .then(function(r){return r.text();}).then(function(t){
+  var j=JSON.parse(t.substring(t.indexOf('{'),t.lastIndexOf('}')+1));
+  var rows=j.table.rows.map(function(r){return (r.c||[]).map(function(c){return c?(c.f!=null?c.f:(c.v!=null?c.v:'')):'';});});
+  var rd=rows.filter(function(r){return String(r[0]).trim().toLowerCase()==='роадмап'&&r[1];});
+  var parse=function(d){return new Date(d);};
+  var min=null,max=null;
+  rd.forEach(function(r){var a=parse(r[1]),b=parse(r[7]||r[1]);if(!min||a<min)min=a;if(!max||b>max)max=b;});
+  min=new Date(min.getFullYear(),min.getMonth(),1);
+  max=new Date(max.getFullYear(),max.getMonth()+1,1);
+  var span=max-min,pct=function(d){return (parse(d)-min)/span*100;};
+  var names=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  var mh='<div class="months">',cur=new Date(min);
+  while(cur<max){var nx=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+   mh+='<div style="width:'+((nx-cur)/span*100)+'%">'+names[cur.getMonth()]+' '+String(cur.getFullYear()).slice(2)+'</div>';cur=nx;}
+  mh+='</div>';
+  var body=rd.map(function(r){
+   var com=r[6]||'';
+   var cls=com.indexOf('критический')>-1||com.indexOf('\uD83D\uDD34')>-1?'crit':((r[2]||'').indexOf('v2')===0?'v2':'');
+   var l=pct(r[1]),w=Math.max(((parse(r[7]||r[1])-parse(r[1]))/span*100),1.2);
+   return '<div class="row"><div class="label" title="'+r[2]+'">'+r[2]+'</div><div class="lane"><div class="bar '+cls+'" style="left:'+l+'%;width:'+w+'%"></div></div></div>';
+  }).join('');
+  document.getElementById('grid').innerHTML=mh+body;
+ });
+}
+var saved=localStorage.getItem('avcfg');
+if(saved){try{start(JSON.parse(saved));}catch(e){localStorage.removeItem('avcfg');}}
+document.getElementById('pw').addEventListener('keydown',function(e){if(e.key==='Enter')login();});
+</script>
+</body>
+</html>
+
