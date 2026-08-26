@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аспро.Встречи — GTM-дашборд</title>
+  <meta name="robots" content="noindex">
+  <style>
+    :root{--navy:#071437;--blue:#1B84FF;--green:#62C584;--coral:#F95D51;--gray:#F6F6F9;--txt:#494949;}
+    *{box-sizing:border-box;}
+    body{font-family:'Inter Tight','Segoe UI',Arial,sans-serif;background:var(--gray);color:var(--navy);margin:0;padding:24px;}
+    header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px;}
+    h1{margin:0;font-size:26px;}
+    .upd{font-size:12px;color:var(--txt);}
+    .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:24px;}
+    .kpi{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 4px rgba(7,20,55,.08);}
+    .kpi b{display:block;font-size:30px;color:var(--blue);}
+    .kpi.money b{color:var(--green);}
+    .kpi span{font-size:12px;color:var(--txt);}
+    h2{font-size:17px;margin:26px 0 10px;border-left:5px solid var(--blue);padding-left:10px;}
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;font-size:13px;}
+    th{background:var(--navy);color:#fff;text-align:left;padding:9px 12px;font-size:12px;}
+    td{padding:8px 12px;border-bottom:1px solid #eef1f6;color:var(--txt);}
+    .tag{display:inline-block;background:#e8f2ff;color:var(--blue);border-radius:10px;padding:1px 8px;font-size:11px;}
+    .road{list-style:none;padding:0;margin:0;}
+    .road li{background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:6px;display:flex;gap:12px;align-items:baseline;font-size:13px;}
+    .road .d{min-width:86px;font-weight:700;color:var(--blue);}
+    .err{background:#fff3f2;border:1px solid var(--coral);border-radius:12px;padding:14px;color:var(--coral);}
+    a{color:var(--blue);}
+    footer{margin-top:28px;font-size:11px;color:var(--txt);}
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+    @media(max-width:900px){.cols{grid-template-columns:1fr;}}
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Аспро.Встречи — GTM-дашборд</h1>
+    <div class="upd">данные: <a id="sheetlink" href="#" target="_blank">Google Sheets</a>a> · <span id="upd">загрузка…</span>span></div>div>
+    </header>
+  <div class="kpis" id="kpis"></div>div>
+  <div class="cols">
+  <div>
+    <h2>📣 Посты и публикации</h2>h2>
+    <div id="posts"></div>
+    <h2>💬 Отзывы</h2>h2>
+    <div id="reviews"></div>
+  </div>
+    <div>
+      <h2>💰 Деньги (GTM-бюджеты)</h2>
+    <div id="money"></div>
+    <h2>🗺 Роадмап</h2>
+    <ul class="road" id="road"></ul>ul>
+    </div>
+  </div>
+  <footer>Правка данных: открыть таблицу, изменить ячейки, обновить страницу. Разделы в колонке А: метрика / деньги / пост / отзыв / роадмап.</footer>
+  <script>
+    var SHEET_ID='1twvWvVtkOB5-GEq7K7CdGVI0BK2Wic0sjUpihfR8_RM';
+    document.getElementById('sheetlink').href='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/edit';
+    var url='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json&headers=1';
+    var fmtN=function(n){return isNaN(n)||n===''?'—':Number(n).toLocaleString('ru-RU');};
+    fetch(url).then(function(r){return r.text();}).then(function(t){
+      var j=JSON.parse(t.substring(t.indexOf('{'),t.lastIndexOf('}')+1));
+      var rows=j.table.rows.map(function(r){return (r.c||[]).map(function(c){return c?(c.f!=null?c.f:(c.v!=null?c.v:'')):'';});});
+      var by=function(s){return rows.filter(function(r){return String(r[0]).trim().toLowerCase()===s;});};
+      var mets={};
+      by('метрика').forEach(function(r){mets[r[2]]=r[3];});
+      var reg=mets['регистрации_всего']||0, pay=mets['оплаты_всего']||0, mrr=mets['MRR']||0, spend=mets['расход_маркетинг_факт']||0;
+      var cac=pay>0?Math.round(spend/pay):null;
+      var kp=[['Регистрации',fmtN(reg),''],['Оплаты',fmtN(pay),''],['MRR, ₽',fmtN(mrr),'money'],['Расход, ₽',fmtN(spend),'money'],['CAC, ₽',cac===null?'—':fmtN(cac),''],['LTV/CAC',cac?(9900/cac).toFixed(1):'—','']];
+      document.getElementById('kpis').innerHTML=kp.map(function(k){return '<div class="kpi '+k[2]+'"><b>'+k[1]+'</b><span>'+k[0]+'</span></div>';}).join('');
+      var tbl=function(rws,cols,idx){if(!rws.length)return '<div style="font-size:13px;color:#999">пока пусто</div>';
+                                     return '<table><tr>'+cols.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr>'+rws.map(function(r){return '<tr>'+idx.map(function(i){
+                                       var v=r[i]!=null?r[i]:'';
+                                       if(i===5&&v)v='<a href="'+v+'" target="_blank">открыть</a>';
+                                       if(i===4&&v)v='<span class="tag">'+v+'</span>';
+                                       if(i===3&&v&&!isNaN(v))v=fmtN(v);
+                                       return '<td>'+v+'</td>';}).join('')+'</tr>';}).join('')+'</table>';};
+      document.getElementById('posts').innerHTML=tbl(by('пост'),['Дата','Что','Канал','Ссылка','Статус'],[1,2,4,5,6]);
+      document.getElementById('reviews').innerHTML=tbl(by('отзыв').filter(function(r){return r[2]||r[6];}),['Дата','Отзыв','Где','Ссылка'],[1,6,4,5]);
+      document.getElementById('money').innerHTML=tbl(by('деньги'),['Период','Статья','Сумма, ₽','Канал','Комментарий'],[1,2,3,4,6]);
+      document.getElementById('road').innerHTML=by('роадмап').map(function(r){return '<li><span class="d">'+(r[1]||'')+'</span><span>'+r[2]+' <em style="color:#999;font-size:11px">'+(r[6]||'')+'</em></span></li>';}).join('');
+      document.getElementById('upd').textContent=new Date().toLocaleString('ru-RU');
+    }).catch(function(e){
+      document.getElementById('kpis').innerHTML='<div class="err">Не удалось загрузить данные: проверьте доступ таблицы. '+e+'</div>';
+    });
+  </script>
+  </body>
+</html>
+  </script></footer></h2></h2>
+    </div>
+  </div></h1>
+    </header>
+  </body>
+  </style></title>
+  </head>
